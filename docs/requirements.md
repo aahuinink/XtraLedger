@@ -1,10 +1,10 @@
-# Requirements
+# requirements.md
 
 These are the requirements for this budget app.
 
 **Document Creation**: March 6th, 2026
 
-**Last Updated**: March 23, 2026
+**Last Updated**: March 24, 2026
 
 **Author**: Aaron Huinink
 
@@ -12,12 +12,12 @@ These are the requirements for this budget app.
 
 | Revision (M.m)| Revised By    | Date          | Comment       |
 | ------------- | ------------- | ------------- | ------------- |
-| 1.0           | A. Huinink    | March 6, 2026 | Initial Release| 
+| 1.0           | A. Huinink    | March 24, 2026 | Initial Release| 
 
 ## 1. Introduction
 ### 1.1. Purpose
 
-Describes the requirements of my personal finance app, ExtraLedger (XL).
+Describes the requirements of my personal finance app, XtraLedger (XL).
 
 ### 1.2. References
 
@@ -41,10 +41,14 @@ The testable requirements for each functional use case are identified with a req
 
 Version 1 shall implement the basic features of my current Excel budget document:
 
-**V1A** - Transactions & Issuers - I will be able to record both expenditure and income (E&I) transactions as one-time lump sum payments, or create an Issuer, which amortizes E&I as scheduled regular installment transactions with a certain frequency.
-**V1B** - I will be able to create basic accounts which are chronological records of transactions. The accounts shall operate with a double-ledger principle and have hashes associated with each transaction, which allows me to go back and edit things (similar to git).
-**V1C** - I will be able to see snapshots of transactions and accounts over time, like net weekly expenditures and income.
-**V1D** - I will have a REPL with simple CRUD commands to interact with my accounts.
+**V1A** - Transactions & Issuers 
+- I will be able to record both expenditure and income (E&I) transactions as one-time lump sum payments, or create an Issuer, which amortizes E&I as scheduled regular installment transactions with a certain frequency.
+**V1B** - Basic Accounts
+- I will be able to create basic accounts which are chronological records of transactions. The accounts shall operate with a double-ledger principle and have hashes associated with each transaction, which allows me to go back and edit things (similar to git).
+**V1C** - Transaction Snapshots 
+- I will be able to see snapshots of transactions and accounts over time, like net weekly expenditures and income.
+**V1D** - REPL UI
+- I will have a REPL with simple CRUD commands to interact with my accounts.
 
 #### 2.1.1 v1.0 - Basic Functionality
 
@@ -76,7 +80,7 @@ _V1C - Transaction Snapshots_
 
 This version will implement the following requirements for V1D:
 
-_V1D - REPL_
+_V1D - REPL UI_
 1) XL shall provide a REPL interface to create, read, update, and delete transactions, issuers, and accounts.
 
 ## Traceability

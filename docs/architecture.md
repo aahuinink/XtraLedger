@@ -2,7 +2,7 @@
 
 **Date Created**: March 6, 2026
 
-**Date Updated**: March 23, 2026
+**Date Updated**: March 24, 2026
 
 **Author**: A. Huinink
 
@@ -10,15 +10,15 @@
 
 | Revision (M.m)| Revised By    | Date          | Comment       |
 | ------------- | ------------- | ------------- | ------------- |
-| 1.0           | A. Huinink    | March 6, 2026 | Initial Release| 
+| 1.0           | A. Huinink    | March 24, 2026 | Initial Release| 
 
 ## 1. Introduction
 
-Describes the general architecture of the ExtraLedger (XL) core library and applicaiton frontends.
+Describes the general architecture of the XtraLedger (XL) core library and application frontends.
 
 ### 1.1 Birds-Eye View
 
-[assets/block-diagram.png]
+[assets/birds-eye-view.png]
 
 The core library _xlcore_ provides the data types, the business logic, and a storage plugin interface.
 The app library provides UI wrappers around the core library.
