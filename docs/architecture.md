@@ -11,6 +11,7 @@
 | Revision (M.m)| Revised By    | Date          | Comment       |
 | ------------- | ------------- | ------------- | ------------- |
 | 1.0           | A. Huinink    | March 24, 2026 | Initial Release| 
+| 1.1           | A. Huinink    | March 24, 2026 | Clarified some names and shuffled hierarchy.| 
 
 ## 1. Introduction
 
@@ -20,26 +21,50 @@ Describes the general architecture of the XtraLedger (XL) core library and appli
 
 [assets/birds-eye-view.png]
 
-The core library _xlcore_ provides the data types, the business logic, and a storage plugin interface.
+The core library _libxl_ provides the data types, the business logic, and a storage plugin interface.
 The app library provides UI wrappers around the core library.
 
 ## 2. XL Core library
 
 The core library provides a double-ledger system to handle finance data.
 
-### 2.1 xlcore/domain
+### 2.1 Public Includes
 
-Core data types like Transaction and Account.
+#### 2.1.1 xlcore/xlcore.h
 
-### 2.2 xlcore/service
+Umbrella include.
 
-Buisiness logic.
+#### 2.1.2 xlcore/api.h
 
-### 2.3 xl/core/storage
+Public business logic API.
 
-Storage plugin interface for interacting with the database.
+#### 2.1.3 xlcore/account.h
 
-## 2. App 
+Account datatype.
+
+#### 2.1.4 xlcore/transaction.h
+
+Transaction data type.
+
+### 2.2 Source
+
+#### 2.2.1 xlcore/api
+
+Public frontend API.
+
+#### 2.2.2 xlcore/domain
+
+Core business logic, account, and transaction data types.
+
+#### 2.2.3 xlcore/storage
+
+Storage interface that decouples domain from storage plugins.
+
+##### 2.2.3.1 storage_plugins/sqlite.cpp
+
+SQLite implementation.
+
+## 3. App 
 
 The app library provides UI wrappers around the business logic.
 
@@ -50,15 +75,3 @@ A REPL CLI for interacting with the database (v1 of XL).
 ### 3.2 app/qt
 
 A Qt GUI for interacting with budget data (TBD, probably v2).
-
-## 4. Storage Plugins
-
-The storage plugins implement interfaces provided in the _xlcore/storage_ library, which are different depending on the database implementation.
-
-### 4.1 storage/sqlite
-
-A SQLite implementation of the storage interface (v1).
-
-### 4.2 storage/lmdb
-
-An LMDB implemenation of the storage interface (TBD).
