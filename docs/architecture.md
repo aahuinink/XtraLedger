@@ -19,7 +19,7 @@ Describes the general architecture of the XtraLedger (XL) core library and appli
 
 ### 1.1 Birds-Eye View
 
-[assets/birds-eye-view.png]
+![Block Diagram](assets/birds-eye-view.png)
 
 The core library _libxl_ provides the data types, the business logic, and a storage plugin interface.
 The app library provides UI wrappers around the core library.
