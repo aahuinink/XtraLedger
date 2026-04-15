@@ -1,0 +1,124 @@
+#include "arena.h"
+#include "internal/arena_helpers.h"
+#include "xlcore/datatypes.h"
+#include <stdint.h>
+#include <xlcore/errors.h>
+#include <stdlib.h>
+
+#define EXTRA_CAPACITY_FACTOR   100     // add 100 extra slots for accounts in the arena
+
+static struct acct_arena g_account_arena;
+
+// attempt to initialize account arena
+// return true upon success, false upon failure (check xl_errno)
+//
+// ERRORS
+//      XL_NOMEM        the system does not have enough memory to allocate the arena
+bool initialize_arena(uint16_t num_accts) {
+
+    size_t total_num_accts =  (size_t)num_accts + 100;
+    if (total_num_accts > (uint16_t)-1) {
+        total_num_accts = (uint16_t)-1;
+    }
+
+    size_t offset = 0;          // used to calculate SoA offsets
+    
+
+    // start of account balance array
+    size_t balance_offset = offset;
+
+    CHECK_OVERFLOW_AND_BUMP(int32_t);
+
+    // start of account names array
+    CHECK_OVERFLOW_AND_ALIGN(xl_smallstr64);
+    size_t names_offset = offset;
+    CHECK_OVERFLOW_AND_BUMP(xl_smallstr64);
+
+    // start of descriptions array 
+    CHECK_OVERFLOW_AND_ALIGN(xl_smallstr128);
+    size_t descs_offset = offset;
+    CHECK_OVERFLOW_AND_BUMP(xl_smallstr128);
+
+    // start of tags array
+    CHECK_OVERFLOW_AND_ALIGN(uint8_t);
+    size_t tags_offset = offset;
+    CHECK_OVERFLOW_AND_BUMP(uint8_t);
+
+    // start of generation array 
+    CHECK_OVERFLOW_AND_ALIGN(uint8_t);
+    size_t gen_offset = offset;
+    CHECK_OVERFLOW_AND_BUMP(uint8_t);
+
+    char * arena_start = malloc(offset);
+
+    if (arena_start == NULL) {
+        SET_NOMEM();
+        return false;
+    }
+
+    // assign pointers
+    g_account_arena.capacity = total_num_accts;
+    g_account_arena.size = num_accts;
+    g_account_arena.start = arena_start;
+    g_account_arena.balances = (int32_t*)(arena_start + balance_offset);
+    g_account_arena.names = (xl_smallstr64*)(arena_start + names_offset);
+    g_account_arena.descs = (xl_smallstr128*)(arena_start + descs_offset);
+    g_account_arena.tags = (uint8_t*)(arena_start + tags_offset);
+    g_account_arena.generation = (uint8_t*)(arena_start + gen_offset);
+
+    return true;
+};
+
+void deinitialize_arena(void) {
+    free(g_account_arena.start);
+    g_account_arena.start = NULL;
+    g_account_arena.balances = NULL;
+    g_account_arena.names = NULL;
+    g_account_arena.descs = NULL;
+    g_account_arena.tags = NULL;
+    g_account_arena.generation = NULL;
+    g_account_arena.size = 0;
+    g_account_arena.capacity = 0;
+}
+
+struct acct_arena * _get_acct_arena() {
+    return &g_account_arena;
+}
+
+// HELPER FUNCTIONS
+
+// aligns the offset to the next correct type alignment boundary
+static inline size_t _align_bump(size_t current_offset, size_t type_alignment) {
+    // if not on exact alignment boundary of next type, determine the amount required to align the current offset with the next type alignment boundary
+    return (type_alignment - (current_offset & ~(type_alignment - 1))) & ~(type_alignment - 1);
+}
+
+// checks if the next block will cause size_t to overflow. 
+// If it doesn't it adds it to the offset and returns false.
+// If it overflows, it returns true
+static inline bool _check_overflow_then_bump(size_t *current_offset, size_t num_accts, size_t type_size) {
+    // check if the number of accounts * type size will overflow size_t
+    if (num_accts > SIZE_MAX / type_size) { return true; };
+
+    // check if the increase in arena size will overflow the current offset
+    size_t bump = num_accts * type_size;
+    if ( *current_offset > SIZE_MAX - bump ) { return true;};
+
+    // if not, bump up the offset to make room for the new fields
+    *current_offset += bump;
+
+    return false;
+}
+
+// same as above but for aligning to the next type
+static inline bool _check_overflow_then_align(size_t * current_offset, size_t type_alignment) {
+    // determine the number of bytes required to align the offset to the next type
+    size_t alignment_bump = _align_bump(*current_offset, type_alignment);
+
+    // make sure it wont overflow size_t
+    if (*current_offset > SIZE_MAX - alignment_bump) { return true; };
+
+    // align the offset
+    *current_offset += alignment_bump;
+    return false;
+}
