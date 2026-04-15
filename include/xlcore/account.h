@@ -11,7 +11,7 @@
 #include <stdbool.h>
 #include <xlcore/datatypes.h>
 
-// Opaque account handle struct, used to look up accounts.
+// Account handle struct, used to look up accounts.
 // Provides lifetime guarantees
 struct xl_account_handle {
     uint16_t slot;
