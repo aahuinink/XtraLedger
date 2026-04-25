@@ -8,14 +8,14 @@
 // Payload size 63 bytes (no null term)
 typedef struct {
     uint8_t length;
-    const char data[63];
+    char data[63];
 } xl_smallstr64;
 
 // A stack-allocated length-prefixed small string. 
 // Payload size 127 bytes (no null term)
 typedef struct {
     uint8_t length;
-    const char data[127];
+    char data[127];
 } xl_smallstr128;
 
 /*
