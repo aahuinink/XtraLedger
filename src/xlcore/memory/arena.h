@@ -7,6 +7,8 @@
 #include <stdint.h>
 #include <sys/types.h>
 
+#define EXTRA_CAPACITY_FACTOR   100     // add 100 extra slots for accounts in the arena
+
 // account arena struct of arrays
 struct acct_arena {
     uint16_t capacity;
@@ -20,7 +22,7 @@ struct acct_arena {
 };
 
 // global accessor function
-struct acct_arena * _get_account_arena();
+const struct acct_arena * const _get_account_arena();
 
 #define account_arena_ref (_get_account_arena())
 

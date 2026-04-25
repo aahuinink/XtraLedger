@@ -2,18 +2,33 @@
 #include <stddef.h>
 #include <stdbool.h>
 #include <stdint.h>
+#include <assert.h>
 
 // internal header for testing purposes
 
 // helper macros
-#define CHECK_OVERFLOW_AND_BUMP(type)        if(_check_overflow_then_bump(&offset, total_num_accts, sizeof(type))) { SET_NOMEM(); return false; }
+#define CHECK_OVERFLOW_AND_BUMP(type)   do { \
+                                            if(_check_overflow_then_bump(&offset, total_num_accts, sizeof(type))) { \
+                                                SET_NOMEM(); \
+                                                return false; \
+                                            } \
+                                        } while (0);
 
-#define CHECK_OVERFLOW_AND_ALIGN(type)        if(_check_overflow_then_align(&offset, alignof(type))) { SET_NOMEM(); return false; }
+#define CHECK_OVERFLOW_AND_ALIGN(type)  do { \
+                                            if(_check_overflow_then_align(&offset, alignof(type))) { \
+                                                SET_NOMEM(); \
+                                                return false; \
+                                            } \
+                                        } while(0);
 
 #define SET_NOMEM()      xl_errno = XL_NOMEM
 
 // aligns the offset to the next correct type alignment boundary
 static inline size_t _align_bump(size_t current_offset, size_t type_alignment) {
+    // ensure type alignment is not zero and is power of 2
+    assert(type_alignment != 0);
+    assert(((type_alignment % 2) == 0) || (type_alignment == 1));
+
     // if not on exact alignment boundary of next type, determine the amount required to align the current offset with the next type alignment boundary
     return (type_alignment - (current_offset & (type_alignment - 1))) & (type_alignment - 1);
 }

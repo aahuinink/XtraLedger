@@ -5,8 +5,6 @@
 #include <xlcore/errors.h>
 #include <stdlib.h>
 
-#define EXTRA_CAPACITY_FACTOR   100     // add 100 extra slots for accounts in the arena
-
 static struct acct_arena g_account_arena;
 
 // attempt to initialize account arena
@@ -16,7 +14,7 @@ static struct acct_arena g_account_arena;
 //      XL_NOMEM        the system does not have enough memory to allocate the arena
 bool initialize_arena(uint16_t num_accts) {
 
-    size_t total_num_accts =  (size_t)num_accts + 100;
+    size_t total_num_accts =  (size_t)num_accts + EXTRA_CAPACITY_FACTOR;
     if (total_num_accts > (uint16_t)-1) {
         total_num_accts = (uint16_t)-1;
     }
@@ -25,8 +23,8 @@ bool initialize_arena(uint16_t num_accts) {
     
 
     // start of account balance array
+    CHECK_OVERFLOW_AND_ALIGN(int32_t);
     size_t balance_offset = offset;
-
     CHECK_OVERFLOW_AND_BUMP(int32_t);
 
     // start of account names array
@@ -81,7 +79,6 @@ void deinitialize_arena(void) {
     g_account_arena.capacity = 0;
 }
 
-struct acct_arena * _get_acct_arena() {
+const struct acct_arena * const _get_account_arena() {
     return &g_account_arena;
 }
-
