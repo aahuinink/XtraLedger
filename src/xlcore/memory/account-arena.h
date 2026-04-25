@@ -22,7 +22,7 @@ struct acct_arena {
 };
 
 // global accessor function
-const struct acct_arena * const _get_account_arena();
+struct acct_arena * const _get_account_arena();
 
 #define account_arena_ref (_get_account_arena())
 
