@@ -15,7 +15,7 @@
 // aligns the offset to the next correct type alignment boundary
 static inline size_t _align_bump(size_t current_offset, size_t type_alignment) {
     // if not on exact alignment boundary of next type, determine the amount required to align the current offset with the next type alignment boundary
-    return (type_alignment - (current_offset & ~(type_alignment - 1))) & ~(type_alignment - 1);
+    return (type_alignment - (current_offset & (type_alignment - 1))) & (type_alignment - 1);
 }
 
 // checks if the next block will cause size_t to overflow. 
