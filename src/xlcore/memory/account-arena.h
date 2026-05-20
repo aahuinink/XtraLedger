@@ -1,43 +1,34 @@
 #ifndef XL_MEMORY_ARENA_H
 #define XL_MEMORY_ARENA_H
 
-#include <xlcore/datatypes.h>
+#include "base-arena.h"
+#include "xlcore/datatypes.h"
 #include <xlcore/account.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <sys/types.h>
 
-#define EXTRA_CAPACITY_FACTOR   100     // add 100 extra slots for accounts in the arena
+#define ACCT_ARENA_START_FIELD balances
 
 // account arena struct of arrays
 struct acct_arena {
-    uint16_t capacity;
-    uint16_t size;
-    char * start;
     int32_t * balances;
     xl_smallstr64 * names;
     xl_smallstr128 * descs;
     uint8_t * tags;
     uint8_t * generation;
+    struct base_arena metadata;
 };
 
-// global accessor function
-struct acct_arena * const _get_account_arena();
-
-#define account_arena_ref (_get_account_arena())
-
 // allocates the arena based on the number of accounts it must hold
-bool initialize_arena(uint16_t num_accts);
+bool account_arena_initialize(struct acct_arena * arena, uint16_t num_accts);
 
 // frees the arena, nulls all values in account_arena_ref
-void deinitialize_arena(void);
+void account_arena_deinitialize(struct acct_arena * arena);
 
+// creates new accounts in the arena
 // true upon success, false upon failure (check xl_errno)
-// creates a new account based on the snapshot provided (snapshot is constructed by caller)
-// writes out the handle of the new account to the 
-bool alloc_new_acct(struct xl_account_handle * out_handle);
-
-// no free because accounts never close. They must always exist.
-// What happens if we reach the limit of 65k accounts? TODO
+// writes out the handles of the newly created account
+bool account_arena_alloc(struct acct_arena * arena, const uint16_t num_new_accts, const int32_t * new_balances, const char * new_names, const char * new_descs, struct xl_account_handle ** out_handles);
 
 #endif                  // XL_MEMORY_ARENA_H

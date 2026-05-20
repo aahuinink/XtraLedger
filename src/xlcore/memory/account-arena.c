@@ -1,84 +1,100 @@
-#include "arena.h"
-#include "internal/arena_helpers.h"
+#include "account-arena.h"
+#include "base-arena.h"
 #include "xlcore/datatypes.h"
+#include <stdalign.h>
+#include <stddef.h>
 #include <stdint.h>
+#include <stdio.h>
 #include <xlcore/errors.h>
 #include <stdlib.h>
 
-static struct acct_arena g_account_arena;
+// HELPER FUNCTIONS
+static uint16_t determine_required_capacity(uint16_t num_accts);
 
 // attempt to initialize account arena
 // return true upon success, false upon failure (check xl_errno)
 //
 // ERRORS
 //      XL_NOMEM        the system does not have enough memory to allocate the arena
-bool initialize_arena(uint16_t num_accts) {
+bool account_arena_initialize(struct acct_arena * arena, uint16_t num_accts) {
 
-    size_t total_num_accts =  (size_t)num_accts + EXTRA_CAPACITY_FACTOR;
-    if (total_num_accts > (uint16_t)-1) {
-        total_num_accts = (uint16_t)-1;
-    }
+    // determine what power of two is required to hold the capacity
+    uint16_t required_capacity = determine_required_capacity(num_accts);
 
     size_t offset = 0;          // used to calculate SoA offsets
     
 
     // start of account balance array
-    CHECK_OVERFLOW_AND_ALIGN(int32_t);
+    CHECK_OVERFLOW_AND_ALIGN(offset, int32_t);
     size_t balance_offset = offset;
-    CHECK_OVERFLOW_AND_BUMP(int32_t);
+    printf("Balance offset: %lu\n", offset);
+    CHECK_OVERFLOW_AND_BUMP(offset, num_accts, int32_t);
 
     // start of account names array
-    CHECK_OVERFLOW_AND_ALIGN(xl_smallstr64);
+    CHECK_OVERFLOW_AND_ALIGN(offset, *arena->names);
     size_t names_offset = offset;
-    CHECK_OVERFLOW_AND_BUMP(xl_smallstr64);
+    printf("Names offset: %lu\n", offset);
+    CHECK_OVERFLOW_AND_BUMP(offset, num_accts, *arena->names);
 
     // start of descriptions array 
-    CHECK_OVERFLOW_AND_ALIGN(xl_smallstr128);
+    CHECK_OVERFLOW_AND_ALIGN(offset, *arena->descs);
     size_t descs_offset = offset;
-    CHECK_OVERFLOW_AND_BUMP(xl_smallstr128);
+    printf("Descs offset: %lu\n", offset);
+    CHECK_OVERFLOW_AND_BUMP(offset, num_accts, *arena->descs);
 
     // start of tags array
-    CHECK_OVERFLOW_AND_ALIGN(uint8_t);
+    CHECK_OVERFLOW_AND_ALIGN(offset, uint8_t);
     size_t tags_offset = offset;
-    CHECK_OVERFLOW_AND_BUMP(uint8_t);
+    printf("Tags offset: %lu\n", offset);
+    CHECK_OVERFLOW_AND_BUMP(offset, num_accts, uint8_t);
 
     // start of generation array 
-    CHECK_OVERFLOW_AND_ALIGN(uint8_t);
+    CHECK_OVERFLOW_AND_ALIGN(offset, uint8_t);
     size_t gen_offset = offset;
-    CHECK_OVERFLOW_AND_BUMP(uint8_t);
+    printf("Generation offset: %lu\n", offset);
+    CHECK_OVERFLOW_AND_BUMP(offset, num_accts, uint8_t);
 
     char * arena_start = malloc(offset);
 
     if (arena_start == NULL) {
-        SET_NOMEM();
+        xl_errno = XL_ENOMEM;
         return false;
     }
 
     // assign pointers
-    g_account_arena.capacity = total_num_accts;
-    g_account_arena.size = num_accts;
-    g_account_arena.start = arena_start;
-    g_account_arena.balances = (int32_t*)(arena_start + balance_offset);
-    g_account_arena.names = (xl_smallstr64*)(arena_start + names_offset);
-    g_account_arena.descs = (xl_smallstr128*)(arena_start + descs_offset);
-    g_account_arena.tags = (uint8_t*)(arena_start + tags_offset);
-    g_account_arena.generation = (uint8_t*)(arena_start + gen_offset);
+    arena->metadata.capacity = required_capacity;
+    arena->metadata.size = num_accts;
+    arena->balances = (int32_t*)(arena_start + balance_offset);
+    arena->names = (xl_smallstr64*)(arena_start + names_offset);
+    arena->descs = (xl_smallstr128*)(arena_start + descs_offset);
+    arena->tags = (uint8_t*)(arena_start + tags_offset);
+    arena->generation = (uint8_t*)(arena_start + gen_offset);
 
     return true;
 };
 
-void deinitialize_arena(void) {
-    free(g_account_arena.start);
-    g_account_arena.start = NULL;
-    g_account_arena.balances = NULL;
-    g_account_arena.names = NULL;
-    g_account_arena.descs = NULL;
-    g_account_arena.tags = NULL;
-    g_account_arena.generation = NULL;
-    g_account_arena.size = 0;
-    g_account_arena.capacity = 0;
+void account_arena_deinitialize(struct acct_arena * arena) {
+    free(arena->ACCT_ARENA_START_FIELD);
+    arena->balances = NULL;
+    arena->names = NULL;
+    arena->descs = NULL;
+    arena->tags = NULL;
+    arena->generation = NULL;
+    arena->metadata.size = 0;
+    arena->metadata.capacity = 0;
 }
 
-const struct acct_arena * const _get_account_arena() {
-    return &g_account_arena;
+
+static uint16_t determine_required_capacity(uint16_t num_accts) {
+    // round up to next power of 2
+    if(num_accts >= (UINT16_MAX >> 1)) {
+        return UINT16_MAX;
+    }
+
+    // minimum of 256
+    uint_fast8_t num_shifts = 7;
+
+    while (num_accts >> ++num_shifts);
+
+    return (0x1 << num_shifts);
 }

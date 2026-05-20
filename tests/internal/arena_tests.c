@@ -1,6 +1,7 @@
-#include "arena.h"
+#include "account-arena.h"
+#include "base-arena.h"
 #include <assert.h>
-#include <internal/arena_helpers.h>
+#include <stdalign.h>
 #include <stddef.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -42,8 +43,8 @@ void test_align_bump () {
 
     for (; i < ALIGNMENTS_LENGTH; i++) {
         uint8_t factor = rand() & 0xFF;     // random byte
-        assert(0 == _align_bump( 0, alignments[i]));
-        assert( 0 == _align_bump(factor * alignments[i], alignments[i]));
+        assert(0 == align_bump( 0, alignments[i]));
+        assert( 0 == align_bump(factor * alignments[i], alignments[i]));
     }
 
     DBG("Checking non-aligned offsets\n");
@@ -56,7 +57,7 @@ void test_align_bump () {
             DBG("Round %d...\n", j);
             uint8_t offset = rand() & 0xFF;     // random byte
             uint8_t modulo = offset % alignments[i]; // calculate difference between alignment boundary and offset
-            size_t result = _align_bump(offset, alignments[i]);
+            size_t result = align_bump(offset, alignments[i]);
             size_t check = (offset + result) % alignments[i];
             DBG("Offset: %d, modulo offset = %d, _align_bump result: %lu, (offset + result) mod alignment: %lu\n", offset, modulo, result, check);
             assert (check == 0);
@@ -68,37 +69,25 @@ void test_align_bump () {
 
 void test_arena_allocation() {
 
-    // test size 0
-    assert(initialize_arena(0));
-    assert(account_arena_ref->size == 0);
-    assert(account_arena_ref->capacity == EXTRA_CAPACITY_FACTOR);
-    deinitialize_arena();
+    struct acct_arena arena;
 
-    // test mid-range size
-    uint16_t rand_num = rand() & (uint8_t)-1;
-    assert(initialize_arena(rand_num));
-    assert(account_arena_ref->size == rand_num);
-    assert(account_arena_ref->capacity == rand_num + EXTRA_CAPACITY_FACTOR);
-    deinitialize_arena();
-    // test max of uint16_t
-    printf("%d\n", account_arena_ref->size);
-    assert(initialize_arena((uint16_t)-1));
-    assert(account_arena_ref->size == (uint16_t)-1);
-    assert(account_arena_ref->capacity == (uint16_t)-1);
-    deinitialize_arena();
+    assert(account_arena_initialize(&arena,(uint16_t)-1));
+    assert(arena.metadata.size == (uint16_t)-1);
+    assert(arena.metadata.capacity == (uint16_t)-1);
+    account_arena_deinitialize(&arena); 
 }
 
 void test_arena_alignment() {
+    struct acct_arena arena;
     for(size_t i = 10; i-- > 0;) {
         uint16_t num_accts = rand() & (uint16_t)-1;
-        initialize_arena(num_accts);
+        account_arena_initialize(&arena,num_accts);
 
-        #define CHECK_ARENA_FIELD_ALIGNMENT(field)  assert(is_aligned(account_arena_ref->field, alignof(*(account_arena_ref->field))))
-        #define CHECK_ARENA_FIELD_SIZE(start, end)       assert(array_size_is_correct(account_arena_ref->start, account_arena_ref->end, sizeof(*(account_arena_ref->start)), num_accts))
+        #define CHECK_ARENA_FIELD_ALIGNMENT(field)  assert(is_aligned(arena.field, alignof(*(arena.field))))
+        #define CHECK_ARENA_FIELD_SIZE(start, end)       assert(array_size_is_correct(arena.start, arena.end, sizeof(*(arena.start)), num_accts))
 
         // verify size
-        assert(account_arena_ref->size == num_accts);
-        assert(account_arena_ref->capacity == (num_accts + EXTRA_CAPACITY_FACTOR));
+        assert(arena.metadata.size == num_accts);
 		CHECK_ARENA_FIELD_ALIGNMENT(balances);
         CHECK_ARENA_FIELD_SIZE(balances, names);
 		CHECK_ARENA_FIELD_ALIGNMENT(names);
@@ -112,7 +101,7 @@ void test_arena_alignment() {
         #undef CHECK_ARENA_FIELD_ALIGNMENT
         #undef CHECK_ARENA_FIELD_SIZE
 
-        deinitialize_arena();
+        account_arena_deinitialize(&arena);
     }
 }
 
