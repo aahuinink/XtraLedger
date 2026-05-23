@@ -34,9 +34,9 @@ The core library provides a double-ledger system to handle finance data.
 
 Umbrella include.
 
-#### 2.1.2 xlcore/api.h
+#### 2.1.2 xlcore/errors.h
 
-Public business logic API.
+Defines errors.
 
 #### 2.1.3 xlcore/account.h
 
@@ -75,3 +75,33 @@ A REPL CLI for interacting with the database (v1 of XL).
 ### 3.2 app/qt
 
 A Qt GUI for interacting with budget data (TBD, probably v2).
+
+## 4. Memory Layout and Workflow
+
+Minimize db transactions. Use a batch queue -> commit cycle. 
+
+At startup, all existing accounts are pulled into a struct of arrays memory arena. The arena is accessed by an account view, which is an index to an existing account in the arena. A hashmap of account views based on account names is also created. Accounts can be searched by name. The arena allocates a bit of extra space, but it will expand as needed by adding a fixed amount in case new accounts are created.
+
+A global staging area is created with memory arenas for all the CUD job types:
+ 1. Open account
+ 2. Closed accounts
+ 3. Updated accounts
+ 3. New transactions
+ 4. Updated transactions
+ 5. Deleted transactions
+
+For now, transactions need to be fetched from the DB every time.
+Eventually, I'd like to implement a cache of recently searched transactions.
+
+Jobs are added to the staging area. 
+Once the commit call is made, then the staging area is written to the database.
+First, new accounts are opened.
+Next, accounts are updated.
+Next, transactions are updated.
+Next, transactions are deleted,
+Next, new transactions are created,
+Finally, accounts are closed.
+
+NOTE - You cannot add transactions to an account until it is commited to the db.
+
+At shutdown, the memory arenas and hashmap are all deallocated.

@@ -9,27 +9,26 @@
 
 #include <stdint.h>
 #include <stdbool.h>
-#include <xlcore/datatypes.h>
+
+#define XL_ACCOUNT_NAME_MAX_LENGTH      64
+#define XL_ACCOUNT_DESC_MAX_LENGTH      128
 
 // Account handle struct, used to look up accounts.
 // Provides lifetime guarantees
-struct xl_account_handle {
-    uint16_t slot;
-    uint16_t generation;
-};
+struct xl_account_handle;
 
-// A stack-allocated object containging copies of all data from an account. No lifetime guarantee
+// A stack-allocated object containing copies of all data from an account. No lifetime guarantee
 struct xl_account_snapshot {
-    int32_t balance;    // account balance
-    xl_smallstr64 name; // account name
-    xl_smallstr64 desc; // account description
+    int32_t balance;                                    // account balance
+    const char name[XL_ACCOUNT_NAME_MAX_LENGTH];        // account name
+    const char desc[XL_ACCOUNT_DESC_MAX_LENGTH];        // account description
 };
 
 // pointer-based view of account data. Provides lifetime guarantee
 struct xl_account_view {
-    const int32_t * balance;    // account balance
-    const xl_smallstr64 * name; // account name
-    const xl_smallstr64 * desc; // account description
+    const int32_t * balance;                            // account balance
+    const char (*name)[XL_ACCOUNT_NAME_MAX_LENGTH];     // account name
+    const char (*desc)[XL_ACCOUNT_DESC_MAX_LENGTH];     // account description
 };
 
 /*
@@ -93,7 +92,7 @@ bool try_get_account_view_by_handle(const struct xl_account_handle * handle, str
  *
  * @return              True if the operation concluded successfully, false if not (check xl_errno)
  */
-bool try_get_account_name_by_handle (const struct xl_account_handle * handle, xl_smallstr64 out_str);
+bool try_get_account_name_by_handle (const struct xl_account_handle * handle, const char * out_str);
 
 /*
  * Checks if an account with the specified name exists. 
@@ -103,7 +102,7 @@ bool try_get_account_name_by_handle (const struct xl_account_handle * handle, xl
  *
  * @return              True if the operation concluded successfully, false if not (check xl_errno)
  */
-bool try_get_account_handle_by_name (const xl_smallstr64 * name, struct xl_account_handle * out_handle);
+bool try_get_account_handle_by_name (const char * name, struct xl_account_handle * out_handle);
 
 /*
  * Checks if an account exists at the specified handle exists.
@@ -115,7 +114,7 @@ bool try_get_account_handle_by_name (const xl_smallstr64 * name, struct xl_accou
  *
  * @return              True if the operation concluded successfully, false if not (check xl_errno)
  */
-bool try_get_account_desc_by_handle (const struct xl_account_handle * handle, xl_smallstr128 * const out_desc);
+bool try_get_account_desc_by_handle (const struct xl_account_handle * handle, char * out_desc);
 
 /*
  * Checks if an account with the specified name exists. 
@@ -126,7 +125,8 @@ bool try_get_account_desc_by_handle (const struct xl_account_handle * handle, xl
  *
  * @return              True if the operation concluded successfully, false if not (check xl_errno)
  */
-bool try_get_account_desc_by_name (const xl_smallstr64 * name, struct xl_account_handle * out_handle, xl_smallstr128 * out_desc);
+bool try_get_account_desc_by_name (const char * name, struct xl_account_handle * out_handle, char * out_desc);
+
 /*
  * Checks if an account exists at the specified handle exists.
  * If it does, it copies out the account balance.
@@ -144,9 +144,10 @@ bool try_get_account_balance_by_handle (const struct xl_account_handle * handle,
  * If you need a lifetime guarantee, use the pointer-based view.
  *
  * @param handle         The account name to look up.
+ * @
  *
  * @return              A fixed byte array containing the account balanace
  */
-bool try_get_account_balance_by_name (const xl_smallstr64 * name, struct xl_account_handle * out_handle, int32_t * out_balance);
+bool try_get_account_balance_by_name (const char * name, struct xl_account_handle * out_handle, int32_t * out_balance);
 
 #endif          // XL_ACCOUNTS_H

@@ -67,7 +67,6 @@ _V1B - Basic Accounts_
 2) An account shall have an enumerated type (asset, liability, or n/a), a normality (credit or debit), a unique ID, and a sequence of transaction.
 3) An account shall have a net ledger balance based on the sequence of its records.
 4) An account shall raise a warning if the ledger balance goes below zero.
-5) An account shall 
 
 ### 2.1.2 v1.1 - Snapshots by Time
 
@@ -97,6 +96,5 @@ _V1D - REPL UI_
 |MV1B.2| | |
 |MV1B.3| | |
 |MV1B.4| | |
-|MV1B.5| | |
 |MV1C.1| | |
 |MV1D.1| | |

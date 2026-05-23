@@ -13,8 +13,9 @@
 //
 // XL ERRORS
 #define XL_ENOERR       0       // success
-#define XL_NOMEM        1       // no memory available to allocate
-
+#define XL_ENOMEM       1       // no memory available to allocate
+#define XL_ENFND        2       // item not found
+#define XL_EDUPL        3
 #define xl_errno (*get_xl_errno())
 
 static inline int * get_xl_errno() {
