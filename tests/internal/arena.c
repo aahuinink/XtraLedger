@@ -1,20 +1,10 @@
+#include "arena.h"
 #include "account-arena.h"
-#include "base-arena.h"
-#include <assert.h>
-#include <stdalign.h>
-#include <stddef.h>
+#include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <sys/types.h>
-#include <xlcore/datatypes.h>
 
-#define DEBUG_PRNT
-#ifdef DEBUG_PRNT
-#define DBG(...) printf(__VA_ARGS__)
-#else
-#define DBG(...)
-#endif
 
 // Helpers
 static inline bool is_aligned(const void * ptr, size_t type_alignment) {
@@ -37,7 +27,7 @@ void test_align_bump () {
         alignof(uint8_t),
     };
 
-    DBG("Checking 0 and integer multiple of alignments...\n");
+    printf("Checking 0 and integer multiple of alignments...\n");
 
     uint8_t i = 0;
 
@@ -47,19 +37,17 @@ void test_align_bump () {
         assert( 0 == align_bump(factor * alignments[i], alignments[i]));
     }
 
-    DBG("Checking non-aligned offsets\n");
+    printf("Checking non-aligned offsets\n");
 
-    i= 0;
-    for(; i < ALIGNMENTS_LENGTH; i++) {
-        DBG("Checking alignment of: %lu\n", alignments[i]);
-        uint8_t j = 0;
-        for(; j < 8; j++ ) {
-            DBG("Round %d...\n", j);
+    for(i=0; i < ALIGNMENTS_LENGTH; i++) {
+        printf("Checking alignment of: %lu\n", alignments[i]);
+        for(uint_fast8_t j = 0; j < 8; j++ ) {
+            printf("Round %d...\n", j);
             uint8_t offset = rand() & 0xFF;     // random byte
             uint8_t modulo = offset % alignments[i]; // calculate difference between alignment boundary and offset
             size_t result = align_bump(offset, alignments[i]);
             size_t check = (offset + result) % alignments[i];
-            DBG("Offset: %d, modulo offset = %d, _align_bump result: %lu, (offset + result) mod alignment: %lu\n", offset, modulo, result, check);
+            printf("Offset: %d, modulo offset = %d, _align_bump result: %lu, (offset + result) mod alignment: %lu\n", offset, modulo, result, check);
             assert (check == 0);
         }
     }
@@ -104,15 +92,3 @@ void test_arena_alignment() {
         account_arena_deinitialize(&arena);
     }
 }
-
-int main(int argc,  char * argv[]) {
-
-    DBG("*** Testing Arena Helpers ***\n");
-
-    test_align_bump();
-    test_arena_allocation();
-    test_arena_alignment();
-
-    return 0;
-}
-
