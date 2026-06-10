@@ -11,14 +11,23 @@
 #include <xlcore/datatypes.h>
 #include <stdbool.h>
 
-typedef struct arena_lookup_table;
+struct arena_lookup_entry;
+
+struct arena_lookup_table {
+    xl_smallstr64 * keys;
+    struct arena_lookup_entry * entries;
+    uint16_t size;
+    uint16_t capacity;
+};
+
 
 // initialize a string-to-index lookup table with the provided keys
 // Returns true if successful, false if not (see xl_errno)
 bool arena_lookup_table_initialize(struct arena_lookup_table * table, xl_smallstr64 * keys, uint16_t num_keys);
 
 // returns -1 if it if the key is not found, otherwise returns the slot in the arena associated with that key
-int32_t arena_lookup_try_get(struct arena_lookup_table * table, const xl_smallstr64 * key);
+// Key is not case sensitive. The internal hash mechanism will convert the key to all lowercase.
+int32_t arena_lookup_try_get(const struct arena_lookup_table * table, const xl_smallstr64 * key);
 
 // Updates the lookup table after new keys are added to the arena.
 // returns true if the key creation was successful, false if not (see xl_errno)
@@ -29,10 +38,9 @@ int32_t arena_lookup_try_get(struct arena_lookup_table * table, const xl_smallst
 //
 // ERRORS
 //      XL_ENOMEM       Creating new keys causes the lookup table or the operating system to run out of space
-bool arena_lookup_try_update(struct arena_lookup_table * table, const uint32_t num_new_keys);
+bool arena_lookup_try_update(struct arena_lookup_table * table, const uint16_t num_new_keys);
 
 // frees the lookup table memory
 void arena_lookup_table_deinitialize(struct arena_lookup_table * table);
-
 
 #endif // XL_ARENA_LOOKUP_TABLE_H

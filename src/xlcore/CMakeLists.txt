@@ -1,6 +1,7 @@
 set(XLCORE_SOURCES
     memory/account-arena.c
     memory/base-arena.c
+    memory/arena-lookup-table.c
     errors.c
 )
 
