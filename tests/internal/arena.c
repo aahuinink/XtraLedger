@@ -1,10 +1,16 @@
-#include "arena.h"
 #include "account-arena.h"
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdalign.h>
 
+void test_align_bump ();
+
+void test_arena_allocation();
+
+
+void test_arena_alignment();
 
 // Helpers
 static inline bool is_aligned(const void * ptr, size_t type_alignment) {
@@ -91,4 +97,10 @@ void test_arena_alignment() {
 
         account_arena_deinitialize(&arena);
     }
+}
+
+int main() {
+    test_align_bump();
+    test_arena_allocation();
+    test_arena_alignment();
 }

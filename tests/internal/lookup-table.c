@@ -1,24 +1,35 @@
 #include "arena-lookup-table.c"
 #include "arena-lookup-table.h"
+#include "../debug_settings.h"
 #include "xlcore/datatypes.h"
 #include <assert.h>
 #include <stdint.h>
-#include <stdio.h>
 
-void test_index_making() {
+bool hash_is_case_insensitive();
 
-    printf("Testing hash-to-index...\n");
-    printf("Happy path - ");
+bool hash_to_index_conversion_works();
+
+bool lookup_table_init_and_deinit_succeeds();
+
+bool hash_to_index_conversion_works() {
     assert(hash_to_index(0x01, 0x8) == 0x1);
     assert(hash_to_index(0x10, 0x8) == 0x00);
-    printf("SUCCESS\nMax Capacity - ");
     assert(hash_to_index(0xFFFF, UINT16_MAX) == 0x00);
     assert(hash_to_index(UINT32_MAX, UINT16_MAX) == 0x00);
-    printf("SUCCESS\n");
+    return true;
 }
 
-void test_put_and_get() {
-    xl_smallstr64 keys[8] = {
+bool hash_is_case_insensitive() {
+    char Three[6] = "Three";
+    char tHreE[6] = "tHreE";
+
+    return (hash(Three) == hash(tHreE));
+}
+
+
+bool lookup_table_init_and_deinit_succeeds() {
+
+    static const xl_smallstr64 test_keys[8] = {
         { 3, "One\0" },
         { 3, "Two\0" },
         { 5, "Three\0" },
@@ -31,23 +42,49 @@ void test_put_and_get() {
 
     struct arena_lookup_table table;
 
-    char Three[6] = "Three";
-    char tHreE[6] = "tHreE";
-
-    printf("Test Lowercasing - ");
-    assert(hash(Three) == hash(tHreE));
-    printf("SUCCESS\nInitialization - ");
-    assert(arena_lookup_table_initialize(&table, keys, 5));
+    assert(arena_lookup_table_initialize(&table, test_keys, 5));
     assert(table.capacity == 0x8);
-    for (uint_fast8_t i = 0; i < 5; i++) {
-        printf("%s", keys[i].data);
-        assert(arena_lookup_try_get(&table, &keys[i]) == i);
-    }
-    printf("SUCCESS\nResize and Update - ");
+    assert(table.size == 0x5);
+    assert(table.entries != NULL);
 
+    for (uint_fast8_t i = 0; i < 5; ++i) {
+        DEBUG_PRT("%s", test_keys[i].data);
+        assert(arena_lookup_try_get(&table, &test_keys[i]) == i);
+    }
+    
     assert(arena_lookup_try_update(&table, 3));
 
     assert(table.capacity == 0x10);
     assert(table.size == 0x8);
-    
+
+    arena_lookup_table_deinitialize(&table);
+
+    assert(table.capacity == 0);
+    assert(table.entries == NULL);
+    assert(table.entries == NULL);
+    assert(table.keys == NULL);
+
+    return true;
 }
+
+int main() {
+
+    // test that indexes hash_to_index_conversion_works
+    DEBUG_PRT("Testing hash-to-index conversion - ");
+    assert(hash_to_index_conversion_works());
+    DEBUG_PRTLN("SUCCESS");
+
+    // test that the hash function produces the same hash regardless of case
+    DEBUG_PRT("Testing Hash Case Insensitivity - ");
+    assert(hash_is_case_insensitive());
+    DEBUG_PRTLN("SUCCESS");
+
+    DEBUG_PRT("Testing lookup table Init/Deinit - ");
+
+    assert(lookup_table_init_and_deinit_succeeds());
+
+    DEBUG_PRTLN("SUCCESS");
+
+    return 0;
+}
+
