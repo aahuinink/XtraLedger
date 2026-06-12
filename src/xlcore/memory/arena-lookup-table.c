@@ -47,7 +47,7 @@ static bool increase_capacity_if_needed(struct arena_lookup_table * table, const
 
 // FUNCTION DEFINITIONS
 
-bool arena_lookup_table_initialize(struct arena_lookup_table * table, xl_smallstr64 * keys, uint16_t num_keys) {
+bool arena_lookup_table_initialize(struct arena_lookup_table * table, const xl_smallstr64 * keys, uint16_t num_keys) {
 
     assert((table != NULL && keys != NULL) && "Attempted to initialize a lookuptable with a null ptr");
     assert((num_keys != 0) && "Attempted to initialize using an empty arena");

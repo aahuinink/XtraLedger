@@ -14,7 +14,7 @@
 struct arena_lookup_entry;
 
 struct arena_lookup_table {
-    xl_smallstr64 * keys;
+    const xl_smallstr64 * keys;
     struct arena_lookup_entry * entries;
     uint16_t size;
     uint16_t capacity;
@@ -23,7 +23,7 @@ struct arena_lookup_table {
 
 // initialize a string-to-index lookup table with the provided keys
 // Returns true if successful, false if not (see xl_errno)
-bool arena_lookup_table_initialize(struct arena_lookup_table * table, xl_smallstr64 * keys, uint16_t num_keys);
+bool arena_lookup_table_initialize(struct arena_lookup_table * table, const xl_smallstr64 * keys, uint16_t num_keys);
 
 // returns -1 if it if the key is not found, otherwise returns the slot in the arena associated with that key
 // Key is not case sensitive. The internal hash mechanism will convert the key to all lowercase.
