@@ -84,8 +84,7 @@ At startup, all existing accounts are pulled into a struct of arrays memory aren
 
 A global staging area is created with memory arenas for all the CUD job types:
  1. Open account
- 2. Closed accounts
- 3. Updated accounts
+ 2. Updated accounts
  3. New transactions
  4. Updated transactions
  5. Deleted transactions
@@ -99,8 +98,7 @@ First, new accounts are opened.
 Next, accounts are updated.
 Next, transactions are updated.
 Next, transactions are deleted,
-Next, new transactions are created,
-Finally, accounts are closed.
+Finally, new transactions are created,
 
 NOTE - You cannot add transactions to an account until it is commited to the db.
 
