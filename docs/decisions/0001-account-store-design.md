@@ -59,4 +59,4 @@ snapshots/views. Because normality is immutable, `xl_account_view.norm` may be a
 - (+) No-globals, testable store; clean opaque boundary for app/REPL.
 - (−) Adding slot reuse or account deactivation later requires a new ADR and revisiting D1.
 - (−) `architecture.md` §4 still describes a "closed accounts" commit step and must be
-  updated to match D4. **(Action: A. Huinink)**
+  updated to match D4. **(Action: A. Huinink - COMPLETED JUNE 22 (commit 0d34b85))**
