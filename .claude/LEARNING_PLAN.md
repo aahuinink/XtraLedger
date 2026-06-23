@@ -19,10 +19,17 @@ _Last reviewed: 2026-06-20 (Opus)._
 | 8 | REPL app surface (`app/repl`) | ⬜ skeleton | End-to-end integration |
 
 ## Current focus (this week)
-1. **Fix milestone 2.** Rehash on resize, calloc the entries, bound the probe loop, and —
+1. **Write ADR 0002** — SoA assumptions revisited (drop `generation` + `tags` byte,
+   normality as its own enum column, descriptions into a string pool). Supersedes 0001
+   D4/D5; enforces D1. A. Huinink authors, Opus reviews.
+2. **Fix milestone 2.** Rehash on resize, calloc the entries, bound the probe loop, and —
    most importantly — write the test whose assertions actually exercise a resize boundary.
-2. Tighten `account.h` (`const` placement on snapshot/view, out-param qualifiers) so
-   milestone 3 can start on solid footing.
+   (Unchanged by ADR 0002: names stay inline in the SoA this week, so the lookup table /
+   I2 is untouched.)
+3. **SoA cleanup (ADR 0002):** remove `generation`, remove the `tags` byte, add the
+   normality enum column; stretch — move `descs` into a relocation-safe string pool.
+4. Tighten `account.h` (`const` placement on snapshot/view, out-param qualifiers) so
+   milestone 3 can start on solid footing. *(`account_store` stub itself bumped to next week.)*
 
 ## Recurring habits I'm grading you on
 - **Tests assert properties, not absence of crashes.** Every data-structure test should
@@ -33,11 +40,19 @@ _Last reviewed: 2026-06-20 (Opus)._
 - **One naming convention for filenames** (kebab vs snake — pick one).
 
 ## Parking lot / future reading
+- **Type/account "buckets":** partition accounts by type (cash/asset/liability/…); normality
+  becomes *derived* from the bucket, superseding the normality column and D1's flat-slot
+  handle. Needs a new ADR — touches handles, the lookup table, and lockstep growth.
 - Robin Hood hashing & backward-shift deletion (once basic open addressing is solid).
 - `restrict`, alignment, and SoA cache behavior (ties into milestone 5 profiling).
 - CMake toolchain files for mingw-w64 (milestone 7).
 
 ## Progress log
+- **2026-06-21** — SoA design session (Opus). Revisited account-arena assumptions before
+  `account_store` cements them: drop `generation` + `tags` byte, normality → own enum column,
+  descriptions → string pool (index, not pointer; names stay inline for now). Decisions
+  captured in HANDOFF for **ADR 0002** (A. Huinink to write). `account_store` stub bumped to
+  next week; rehash fix still the milestone-2 unblocker and unaffected by the SoA changes.
 - **2026-06-20** — First mentored session. Reviewed weeks of arena + lookup-table work.
   Lookup table architecture is strong; resize path has a latent correctness bug masked by
   weak test assertions. Assigned homework `20-06-2026/QUESTIONS.md`. Plan established.

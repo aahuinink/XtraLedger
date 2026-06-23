@@ -13,6 +13,18 @@ before and after the grow, and explain in words the algorithm you'll use to rebu
 table. Then implement it. **Constraint:** do it without re-running the DJB2 hash — you
 already store `hash` in each entry, so use it.
 
+### Answer
+Because the current table capacity is used to determine the starting index for a hash, 
+when the capacity changes, the index a hash produces will change as well:
+
+e.g. _Hash = 0x0010530A, Capacity 8-->16_ 
+When capacity = 8, hash_to_index returns (0x0010530A & 0x7) = 0x0002.
+When capacity = 16, hash_to_index returns (0x0010530A & 0xF) = 0x000A.
+
+To re-build the table, I will iterate over each non-empty entry in the table, re-run 
+`hash_to_index`, and move the entry to its new index. (I THINK THIS CAN BE BETTER -
+maybe a resize-independent hash table that uses a binary tree or something, Lets profile this later)
+
 ## Q2 — Designing the test that would have caught the bug (connects to: testing discipline)
 Your current test asserts `capacity == 0x10` and `size == 0x8` after the grow but never
 re-queries the original 5 keys. Write down the *property* a lookup-table test should
@@ -20,11 +32,25 @@ guarantee (phrase it as an invariant), then write the assertions that encode it 
 resize boundary. Why is "the code ran without crashing" a weaker guarantee than "every
 inserted key is retrievable"?
 
+### Answer
+A lookup table test shall guarantee consistency, so that the same key always returns the same value even after resizing.
+
+Assert after resize that get("key") before resize == get("key") after resize.
+
+Running without crashing is a weaker guarantee than every inserted key is retrievable because it does not guarantee that the value returned for a key will be the same after some mutation of the table. It could falsely assume the key has no value, or return the value of another key.
+
 ## Q3 — Uninitialized memory & the sentinel (connects to: bug #3, calloc vs malloc)
 Explain the difference between "0xF364 is unlikely to appear by chance" and "reading
 uninitialized memory is undefined behavior." Why does the second statement make the first
 irrelevant? Convert the table to `calloc` with `state == 0` meaning empty, and explain one
 measurable cost of `calloc` vs `malloc` and when it would matter.
+
+### Answer
+The second statement makes the next one irrelevant because the first attempts to define behavior for a process on uninitialized
+memory, which is inherently undefined behavior. This is a contradiction.
+Since we are reading memory before we write to it, we should use `calloc`. Converting the table to `calloc` and using `0x0` as a sentinel 
+value for empty would measurably increase the cost if the array was small, but for larger arrays the OS can provide pre-zeroed pages
+making it just as fast as malloc.
 
 ## Q4 — `const` correctness in out-parameters (connects to: account.h redesign)
 Explain why `const`-qualified *members* of `xl_account_snapshot` make the
