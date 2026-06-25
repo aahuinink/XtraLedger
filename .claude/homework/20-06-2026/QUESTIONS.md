@@ -59,12 +59,48 @@ between "the caller should treat this snapshot as read-only" and "this struct's 
 const"? Show the corrected struct and a 3-line caller example that gets read-only behavior
 the right way.
 
+### Answer
+Since the members of `xl_account_snapshot` are `const`-qualified, I will be unable to update the out-parameter snapshot members. The difference is where the `const` qualification is. When it is in the return value of a function signature, that means that the caller should treat the snapshot as read-only, whereas when the `const` is in struct fields, that data should be read-only.
+
+```
+struct xl_account_snapshot {
+    int32_t balance;                    // account balance
+    enum xl_acct_normality norm;        // account normality (cr/dr)
+    xl_smallstr64 name;                 // account name
+    xl_smallstr128 desc;                // account description
+};
+
+struct xl_account_snapshot snapshot;
+
+try_get_account_snapshot_by_handle(store, handle, &snapshot);
+
+const struct xl_account_snapshot * ro_snapshot = &snapshot;
+
+```
+
 ## Q5 (stretch) — When is branchless worth it? (connects to: readability constraint + profiling goals)
 Pick ONE of your branchless expressions (the hash lowercasing, the probe wraparound, or the
 capacity mask). Write the readable branching version next to it. Describe an experiment you
 could run to decide which is actually faster on your target hardware — what would you
 measure, how would you isolate this function, and what result would justify keeping the
 clever version? You don't have to run it yet (we'll wire up profiling soon), just design it.
+
+### Answer
+From `src/xlcore/memory/lookup-tabe.c:185`
+
+```
+
+...
+        // branchless version
+        c += 32 * ((c <= 'Z') & (c >= 'A'));
+        // readable version 
+        if ((c <= 'Z') & (c >= 'A')) {
+            c += 32;
+        }
+...
+
+```
+To test these two versions, I'd write two versions of the hash function, one with the branchless version and the ohter with a readable version. I'd run each hash in a loop on sets of different types of strings: short (one word), medium (2-4 words), and long (10+ words). Id also apply different types of capitalization to the string sets (only first letter of first word of sentence, all first letters of sentence, random capitalization, and all capitalization). I'd time each loop and determine what data sets the readable vs clever version runs better on. If the function runs faster for short/medium strings with only the first letter of the first word/first letter of all words capitalized, AND I needed the hash to run in a hot loop, then I'd keep the branchless version.
 
 ---
 

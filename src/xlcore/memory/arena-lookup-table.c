@@ -207,7 +207,7 @@ static bool increase_capacity_if_needed(struct arena_lookup_table * table, const
     table->capacity = new_min_capacity;
 
     // malloc new space
-    struct arena_lookup_entry * new_entry_array = malloc(new_min_capacity * sizeof(struct arena_lookup_entry));
+    struct arena_lookup_entry * new_entry_array = calloc(new_min_capacity, sizeof(struct arena_lookup_entry));
 
     if (new_entry_array == NULL) {
         xl_errno = XL_ENOMEM;
@@ -219,10 +219,8 @@ static bool increase_capacity_if_needed(struct arena_lookup_table * table, const
         return true;
     }
 
-    struct arena_lookup_entry * old_entry_array = table->entries;
+    // iterate over all entries and re-index
 
-    // copy old stuff over
-    memcpy(table->entries, new_entry_array, table->capacity);
     // set new entry array for the lookup table
     table->entries = new_entry_array;
     // free old memory

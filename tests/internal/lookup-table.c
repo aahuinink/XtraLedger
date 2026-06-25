@@ -49,13 +49,18 @@ bool lookup_table_init_and_deinit_succeeds() {
 
     for (uint_fast8_t i = 0; i < 5; ++i) {
         DEBUG_PRT("%s", test_keys[i].data);
-        assert(arena_lookup_try_get(&table, &test_keys[i]) == i);
+        assert(arena_lookup_try_get(&table, &test_keys[i]) == i && "Failed to retrieve keys after re-size");
     }
     
     assert(arena_lookup_try_update(&table, 3));
-
     assert(table.capacity == 0x10);
     assert(table.size == 0x8);
+
+
+    for (uint_fast8_t i = 0; i < 8; ++i) {
+        DEBUG_PRT("%s", test_keys[i].data);
+        assert(arena_lookup_try_get(&table, &test_keys[i]) == i);
+    }
 
     arena_lookup_table_deinitialize(&table);
 

@@ -4,63 +4,46 @@
 > `/session-start`. This is the *current* pointer; the weekly `journal/` files are the
 > historical log. Keep this short and action-oriented — if a section is stale, fix it.
 
-_Last updated: 2026-06-21 (Opus, mid-session design discussion)_
+_Last updated: 2026-06-24 (Sonnet, session-end)_
 
-## Completed last session (2026-06-20)
-Mentoring workflow + skills stood up; `account_store` design locked as ADR 0001; week's
-code reviewed; setup committed/pushed. No production code written yet.
-
-## This session (2026-06-21, Opus) — SoA assumptions revisited
-Design discussion before `account_store` cements the SoA. Decisions reached (raw material
-for **ADR 0002**, which A. Huinink writes; supersedes parts of 0001):
-- **Drop the `generation` column.** Aligns the arena with D1 (slot-only handles); the column
-  was dead weight nothing read. *Not* a reversal of D1 — it enforces it.
-- **Drop the `tags` byte entirely** (net-worth class + status bit). Net-worth class is
-  subsumed by the future type/bucket dimension (below); the reserved status bit is dropped —
-  a **conscious reversal of D4**, accepting a future format migration if deactivation returns.
-- **Normality → its own 1-byte `enum xl_acct_normality` column.** Wastes 7 bits for now;
-  accepted. Supersedes D5 (no longer packed in a tag byte). Stored directly, *not* derived.
-- **Descriptions → a string pool (sequencing option (a)).** `descs` column becomes a 4-byte
-  index (`uint32_t`) into a separate `xl_smallstr128` pool; **names stay inline in the SoA**
-  for now (keeps the lookup table / I2 untouched this week). Store the **index, not a
-  pointer** — the pool reallocs on grow. Snapshots copy out (safe); desc *views* resolve
-  through `pool_base + idx` or are documented as valid only until the next pool-growing insert.
-- **Capacity policy: grow-on-demand, geometric, sized to the DB row count at load.**
-  Pre-allocating the full uint16 range is **rejected** (~5–13 MB to hold what is realistically
-  hundreds of rows). At startup the store pre-fetches all accounts and inits capacity to the
-  loaded count rounded up to the next power of two → steady state does **zero** resizes. Keep
-  doubling, not linear (+N): linear is O(n²) total copy work, and — decisive — the lookup
-  table is power-of-two-only and grows in lockstep (D3), so a linear arena can't stay aligned
-  with it. "Not perf-critical" defeats the resize-latency worry; optimize footprint + simplicity.
-  Future, only if profiled (milestone 5): chunked/segmented arena (stable addresses, no copy
-  on grow) — also fixes the desc-pool view-lifetime hazard.
-- **Future (reserved, not built): type/account "buckets."** Partition accounts by type
-  (cash/asset/liability/…); normality would then be *derived* from the bucket, superseding
-  both the normality column and D1's flat-slot handle. New ADR when we build it.
+## Completed this session (2026-06-24)
+- Homework Q4–Q5 answered (uncommitted — stage and commit before starting code work).
+- `account.h` redesigned: `xl_account_store` forward decl added, `xl_acct_normality` enum
+  added, raw `char[]` → `xl_smallstr64`/`xl_smallstr128`, `store` param added to all
+  accessors. **Uncommitted.**
+- Resize-survival test written in `tests/internal/lookup-table.c` — failing as expected.
+  **Uncommitted.**
+- `increase_capacity_if_needed`: partial `calloc` switch — `malloc` → `calloc`, `memcpy`
+  removed, but rehash NOT implemented (left as a comment). Implementation is currently
+  broken (worse than before the patch). **Uncommitted.**
+- Decision: **rewrite `arena-lookup-table`** rather than continue patching.
 
 ## Current focus
-ADR 0002 + SoA cleanup, *then* finish Milestone 2 (lookup-table rehash), *then* Milestone 3
-(`account_store`). Milestone 3 is still **blocked** on the rehash being correct — option (a)
-deliberately keeps the lookup table out of this week's SoA changes so that fix is unchanged.
+**Rewrite `arena-lookup-table`** — stacked bugs make patching worse than a clean rewrite.
+Decision made 2026-06-24.
 
 ## Next actions (in order — start at the top)
-1. **Write ADR 0002** from the decision list above. Mark it as superseding D4/D5 and
-   *enforcing* D1; reserve the type/bucket direction in Consequences.
-2. **Fix lookup-table rehash-on-resize** (unchanged by ADR 0002 — names stay in SoA).
-   `populate_lookup_table` only inserts the new keys; existing entries keep stale positions
-   after a grow. Reinsert every entry using the stored `hash` field (don't re-run DJB2). Q1.
-3. **Switch entries allocation to `calloc`**, `state == 0` means "empty"; delete the
-   `0xF364` sentinel gamble. Q3. **Bound the probe loop by capacity** (review bug #4).
-4. **Add the resize-survival test:** after growing 8→16, re-query all original keys and
-   assert each still resolves to its slot. The test that would have caught the bug. Q2.
-5. **SoA cleanup (ADR 0002):** remove `generation`; remove the `tags` byte; add the
-   `normality` enum column. Mechanical, low risk.
-6. **Descs string pool (stretch — may slip):** pool alloc/grow, `uint32_t` index column,
-   wire the `desc` accessors. Mind the relocation/view-lifetime note above.
+0. **Commit working-tree changes** (homework Q4–Q5, `account.h` redesign, partial
+   `calloc` patch, test): stage them, then commit before touching any code.
+1. **Rewrite `arena-lookup-table`** with three goals:
+   - **Better interface for `account_store`**: `account_store` (ADR 0001 D3) drives resize
+     decisions. Expose a `resize`/`rebuild` entry point that `account_store` calls after
+     growing its arena; remove self-triggering resize from inside the table.
+   - **Iterator for resize**: iterator over live entries so the rehash walks existing entries
+     cleanly — reinsert using `entry.hash`, never re-running DJB2.
+   - **Fix the logic bugs** (`feedback/24-06-2026.md`): `memcpy` arg order, byte count,
+     capacity stomped before copy, UB sentinel → `calloc`/`state==0`, unbound probe loop,
+     dead `get_starting_entry` prototype.
+2. **Resize-survival test already written** — make the rewrite pass it. Do not touch the test.
+3. **`account.h` Q4 fix**: remove `const` from *fields* of `xl_account_snapshot`; make
+   `xl_account_view.norm` a pointer (`const enum xl_acct_normality *`). Unblocks accessors.
+4. **SoA cleanup (ADR 0002):** remove `generation`; remove `tags` byte; add `normality` enum
+   column. Mechanical, low risk.
+5. **Descs string pool (stretch):** pool alloc/grow, `uint32_t` index column, wire accessors.
 
-## Bumped to next week
-- Stub `account_store` (`init`/`deinit` + `_by_handle` accessors, slot-only, bounds-checked).
-  Was the old action #4; displaced by ADR 0002 + SoA work. Still blocked on the rehash fix.
+## Bumped / still blocked
+- Stub `account_store` (`init`/`deinit` + `_by_handle` accessors) — still blocked on the
+  lookup-table rewrite being correct.
 
 ## Spec / references
 - `docs/decisions/0001-account-store-design.md` — the locked account_store spec (D1–D5, I1–I2).
