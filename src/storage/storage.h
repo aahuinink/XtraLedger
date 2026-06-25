@@ -15,7 +15,6 @@
 
 #include <stdbool.h>
 #include <stdint.h>
-#include <xlcore/transaction.h>
 #include <xlcore/account.h>
 
 // Special cases of read sizes
