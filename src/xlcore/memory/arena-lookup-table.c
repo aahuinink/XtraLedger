@@ -12,32 +12,90 @@
 
 #define MAX_LOAD_FACTOR 0.7f
 
-// using this value as the "entry is active" state.
-// I picked something random so it is unlikely to exist in uninitialized memory
-// See the populate_lookup_table function for reasoning
-#define ENTRY_STATE_ACTIVE 0xF364
-
 struct arena_lookup_entry {
     uint32_t hash;
     uint16_t arena_slot;
     uint16_t state;
 };
 
+// Get the index for a key. Returns the index, or -1 if the key does not exist in the table
+int lookup_table_get(xl_smallstr64 *key);
+
+// Put a slot value into the table at a certain key
+bool lookup_table_put(xl_smallstr64 *key, uint16_t value);
+
 // HELPER PROTOTYPES
+
+// determine if the table needs to be resized to hold the number of new keys.
+// If it does, it resizes the table, re-index the buckets, and frees the old memory.
+// returns true upon resize success, false if not
+// 
+// ERRORS
+//      XL_ENOMEM       There are too many keys in the lookup table to add the new keys, or there is not enough space on the system.
+bool resize_table_if_needed(struct arena_lookup_table * table, uint16_t num_new_keys);
 
 // gets the position of the first possible matching entry for a key
 static uint16_t get_starting_entry(const char * key);
 // determines the required capacity of the lookup table to fit a certain number of keys without exceeding the load factor or the maximum capacity of the table
-static uint16_t determine_required_capacity(uint16_t num_new_keys);
-// populates the lookup table.
-// assumes the size of the lookup table is correct
-static void populate_lookup_table(struct arena_lookup_table * table, const uint16_t num_new_keys);
+static uint16_t determine_required_capacity(uint16_t num_keys);
 
 // converts the cstr key in the buffer to all lowercase and then produces a hash using DJB2
+// Will not allow a hash to be 0x00, since this is the empty state (TODO) 
 static uint32_t hash(char * key);
 
 //converts a hash into a lookup index
 static inline uint16_t hash_to_index(uint32_t hash, uint16_t table_capacity);
+
+
+bool resize_table_if_needed(struct arena_lookup_table * table, uint16_t num_new_keys) {
+
+    // check for overflow
+    if (table->capacity >= (UINT16_MAX - num_new_keys)) {
+        xl_errno = XL_ENOMEM;
+        return false;
+    }
+
+    // determine the capacity required to hold the current table + new keys
+    uint16_t new_capacity = determine_required_capacity(table->size + num_new_keys);
+
+    // if we don't need to resize, return early
+    if (table->capacity >= new_capacity) {
+        return true;
+    }
+    //
+    //
+    // calloc the new entry array
+    struct arena_lookup_entry * new_entries = (struct arena_lookup_entry*)calloc(new_capacity, sizeof(struct arena_lookup_entry));
+    //
+    // // null check, set errors as needed
+    if (new_entries == NULL) {
+        xl_errno = XL_ENOMEM;
+        return false;
+    }
+    //
+    // if the current entries array is NULL (i.e. we are initializing the table), then just use the new entry array and return.
+    if (table->entries == NULL) {
+        table->entries = new_entries;
+        table->capacity = new_capacity;
+        return true;
+    }
+    //
+    // iterate over the current entry array, reindex non-empty entries with the new capacity, then insert into the new array
+    for (uint_fast16_t i = 0; i < table->capacity; ++i) {
+        struct arena_lookup_entry * entry = &table->entries[i];
+        if (entry->hash != 0x00) {
+            uint16_t new_index = hash_to_index(entry->hash, new_capacity);
+            new_entries[new_index] = *entry;
+        }
+    }
+    // free the old array and update table metadata
+    free(table->entries);
+
+    table->entries = new_entries;
+    table->capacity = new_capacity;
+ 
+    return true;
+}
 
 // checks if filling a certain number of entrys will exceed the max load factor and resizes the lookup table if required.
 // returns true if the operation succeeds, false if not (check xl_errno)
