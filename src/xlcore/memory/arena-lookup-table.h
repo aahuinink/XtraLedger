@@ -38,7 +38,8 @@ int32_t arena_lookup_try_get(const struct arena_lookup_table * table, const xl_s
 //
 // ERRORS
 //      XL_ENOMEM       Creating new keys causes the lookup table or the operating system to run out of space
-bool arena_lookup_try_update(struct arena_lookup_table * table, const uint16_t num_new_keys);
+//      XL_EDUPL        A duplicate key already exists
+uint16_t arena_lookup_try_update(struct arena_lookup_table * table, const uint16_t num_new_keys);
 
 // frees the lookup table memory
 void arena_lookup_table_deinitialize(struct arena_lookup_table * table);

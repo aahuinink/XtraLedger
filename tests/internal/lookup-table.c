@@ -20,10 +20,10 @@ bool hash_to_index_conversion_works() {
 }
 
 bool hash_is_case_insensitive() {
-    char Three[6] = "Three";
-    char tHreE[6] = "tHreE";
+    xl_smallstr64 Three = {5, "Three"};
+    xl_smallstr64 tHreE = {5, "tHreE"};
 
-    return (hash(Three) == hash(tHreE));
+    return (hash(&Three) == hash(&tHreE));
 }
 
 
