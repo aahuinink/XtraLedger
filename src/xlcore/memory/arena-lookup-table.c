@@ -40,6 +40,7 @@ uint32_t get(const struct arena_lookup_table * table, const xl_smallstr64 * key,
 bool put(const struct arena_lookup_table * table, const uint16_t slot, const uint32_t key_hash);
 
 // determines the required capacity of the lookup table to fit a certain number of keys without exceeding the load factor or the maximum capacity of the table
+// returns a minimum of 255 (0x80)
 static uint16_t determine_required_capacity(const uint16_t num_keys);
 
 // checks if filling a certain number of entrys will exceed the max load factor and resizes the lookup table if required.
@@ -146,12 +147,18 @@ void arena_lookup_table_deinitialize(struct arena_lookup_table * table) {
     table->keys = NULL;
 }
 
+// minimum of 255 entries
 static uint16_t determine_required_capacity(uint16_t num_keys) {
     // find min capacity to meet max load factor requirement
-    uint16_t min_capacity = num_keys / MAX_LOAD_FACTOR;
+    uint32_t min_capacity = num_keys / MAX_LOAD_FACTOR;
+
     // if greater than UINT16_MAX / 2, return max_capacity;
     if (min_capacity > (0x8000)) {
         return UINT16_MAX;
+    }
+
+    if (min_capacity < 0x80) {
+        return 0x80;
     }
 
     // round up to next power of 2
