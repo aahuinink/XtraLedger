@@ -25,6 +25,8 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
+add_compile_options(-Wall -Wextra -Wconversion)
+
 set(XLCORE_LIB_NAME xlcore)
 
 add_executable(
