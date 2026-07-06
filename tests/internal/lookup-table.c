@@ -150,7 +150,7 @@ bool duplicate_key_insert() {
     // check that passing a key array corrupted with a duplicate key will also fail using the public API
     xl_errno = XL_ENOERR;
 
-    int32_t successful_writes = arena_lookup_try_update(&table, 4);
+    uint16_t successful_writes = arena_lookup_try_update(&table, 4);
 
     assert((successful_writes == 1) && "An incorrect amount of successful_writes");
     assert(xl_errno == XL_EDUPL && "Duplicate error is not raised when a duplicate key is inserted into the table");
@@ -167,7 +167,7 @@ bool entry_indexes_head_and_tail() {
 
     xl_smallstr64 zero_index_test_keys[3] = {{ .length = 0, .data = "" }, { .length = 0, .data = "" }, { .length = 13, .data = "Segfault Test"}};
 
-    // since test_keys[0] is null, the hash will be 5361, which will evaluate to a non-zero index
+    // since test_keys[0] is null, the hash will be 5381, which will evaluate to a non-zero index
     arena_lookup_table_initialize(&table, zero_index_test_keys, 1);
 
     // next, put in a key with a hash that evaluates to a zero index

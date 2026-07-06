@@ -30,12 +30,12 @@ static inline uint16_t hash_to_index(const uint32_t hash, const uint16_t table_c
 // UINT32_MAX - [key index]. For example, if the key is not found, but it *could* be inserted at index 5, then get() returns
 // UINT32_MAX - 5. the index can be recovered by subtracting the return value from UINT32_MAX.
 // WARNING -> do not use this index unless you know for sure that the entries array has not changed (i.e. concurrent writers)
-uint32_t get(const struct arena_lookup_table * table, const xl_smallstr64 * key, const uint32_t key_hash);
+static uint32_t get(const struct arena_lookup_table * table, const xl_smallstr64 * key, const uint32_t key_hash);
 
 // inserts the value into the table using its corresponding key
 // ERRORS       
 //      XL_EDUPL        The slot already exists in the table
-bool put(const struct arena_lookup_table * table, const uint16_t slot, const uint32_t key_hash);
+static bool put(const struct arena_lookup_table * table, const uint16_t slot, const uint32_t key_hash);
 
 // determines the required capacity of the lookup table to fit a certain number of keys without exceeding the load factor or the maximum capacity of the table
 // returns a minimum of 128 (0x80)
@@ -80,7 +80,7 @@ int32_t arena_lookup_try_get(const struct arena_lookup_table * table, const xl_s
     return slot;
 }
 
-uint32_t get(const struct arena_lookup_table * table, const xl_smallstr64 * key, const uint32_t key_hash) {
+static uint32_t get(const struct arena_lookup_table * table, const xl_smallstr64 * key, const uint32_t key_hash) {
 
     uint32_t slot;
 
@@ -243,7 +243,7 @@ static bool increase_capacity_if_needed(struct arena_lookup_table * table, const
     return true;
 }
 
-bool put(const struct arena_lookup_table * table, const uint16_t slot, const uint32_t key_hash) {
+static bool put(const struct arena_lookup_table * table, const uint16_t slot, const uint32_t key_hash) {
 
     uint32_t entry_index = get(table, &table->keys[slot], key_hash);
 
