@@ -18,4 +18,7 @@
 
 #endif
 
+// test runners
+#define XL_RUN_TEST(preamble, test, conclusion)         DEBUG_PRT(preamble); assert(test()); DEBUG_PRTLN(conclusion);
+
 #endif  // TESTS_DEBUG_SETTINGS_H

@@ -2,7 +2,6 @@
 #include "xlcore/datatypes.h"
 #include <assert.h>
 #include <stdint.h>
-#include <string.h>
 #include <strings.h>
 #include <sys/types.h>
 #include <xlcore/errors.h>
@@ -15,8 +14,7 @@
 // No state is stored. A hash of 0x0 means that the entry is empty
 struct arena_lookup_entry {
     uint32_t hash;
-    uint16_t arena_slot;
-};
+    uint16_t arena_slot; };
 
 // PRIVATE FUNCITON PROTOTYPES
 
@@ -40,7 +38,7 @@ uint32_t get(const struct arena_lookup_table * table, const xl_smallstr64 * key,
 bool put(const struct arena_lookup_table * table, const uint16_t slot, const uint32_t key_hash);
 
 // determines the required capacity of the lookup table to fit a certain number of keys without exceeding the load factor or the maximum capacity of the table
-// returns a minimum of 255 (0x80)
+// returns a minimum of 128 (0x80)
 static uint16_t determine_required_capacity(const uint16_t num_keys);
 
 // checks if filling a certain number of entrys will exceed the max load factor and resizes the lookup table if required.
@@ -58,6 +56,7 @@ bool arena_lookup_table_initialize(struct arena_lookup_table * table, const xl_s
 
     table->capacity = 0;
     table->keys = keys;
+    table->size = 0;
     table->entries = NULL;
 
     return arena_lookup_try_update(table, num_keys);
@@ -100,7 +99,7 @@ uint32_t get(const struct arena_lookup_table * table, const xl_smallstr64 * key,
         if ( key_hash == possible_match.hash ) {
             slot = possible_match.arena_slot;
             // check if the strings match, case insensitive
-            if ( strncasecmp(key->data, table->keys[slot].data, XL_SMALLSTR64_PAYLOAD_SIZE ) == 0 ) {
+            if ( strncasecmp(key->data, table->keys[slot].data, sizeof(table->keys[slot].data)) == 0 ) {
                 return slot;
             }
         }
@@ -147,26 +146,30 @@ void arena_lookup_table_deinitialize(struct arena_lookup_table * table) {
     table->keys = NULL;
 }
 
-// minimum of 255 entries
+#define MIN_TABLE_CAPACITY      0x80            // 128 minimum starting capacity
+
+// minimum of 128 entries
 static uint16_t determine_required_capacity(uint16_t num_keys) {
     // find min capacity to meet max load factor requirement
-    uint32_t min_capacity = num_keys / MAX_LOAD_FACTOR;
+    uint32_t required_capacity = num_keys / MAX_LOAD_FACTOR;
 
     // if greater than UINT16_MAX / 2, return max_capacity;
-    if (min_capacity > (0x8000)) {
+    if (required_capacity > (0x8000)) {
         return UINT16_MAX;
     }
 
-    if (min_capacity < 0x80) {
-        return 0x80;
+    if (required_capacity < 0x80) {
+        return MIN_TABLE_CAPACITY;
     }
 
     // round up to next power of 2
-    int num_shifts = 0;
-    
-    while ((min_capacity >> ++num_shifts));
+    uint16_t rounded_capacity = MIN_TABLE_CAPACITY;
 
-    return 0x1 << num_shifts;
+    while (rounded_capacity <= required_capacity) {
+        rounded_capacity <<= 1;
+    }
+
+    return rounded_capacity;
 
 }
 
