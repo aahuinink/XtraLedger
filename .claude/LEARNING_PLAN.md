@@ -3,14 +3,14 @@
 A double-entry accounting engine in ANSI C, used as a vehicle to practice professional
 patterns: data-oriented design, CMake, testing, profiling, SQLite, and cross-compilation.
 
-_Last reviewed: 2026-07-01 (Sonnet)._
+_Last reviewed: 2026-07-17 (Opus)._
 
 ## Milestones
 
 | # | Milestone | Status | Primary learning goal |
 |---|-----------|--------|-----------------------|
 | 1 | Memory arenas (base + account SoA) | 🚧 reopened by ADR 0002 — `generation`/`tags` removal pending | Data-oriented design |
-| 2 | String→slot lookup table (hash map) | 🚧 core logic correct, passes — **test coverage still thin** | Open addressing, testing rigor |
+| 2 | String→slot lookup table (hash map) | ✅ hardened + tests encode invariants; open smells: `initialize` return contract, `hash_to_index` cleverness, `-Wconversion` backlog | Open addressing, testing rigor |
 | 3 | `account_store` wiring (arena + index behind handle API) | ⬜ next | API design, ownership/lifetimes |
 | 4 | Test harness + debug instrumentation maturing | 🚧 ongoing | Test design, invariants over smoke tests |
 | 5 | Profiling instrumentation (timers/counters in debug builds) | ⬜ planned | Measurement-driven optimization |
@@ -19,21 +19,23 @@ _Last reviewed: 2026-07-01 (Sonnet)._
 | 8 | REPL app surface (`app/repl`) | ⬜ skeleton | End-to-end integration |
 
 ## Current focus (this week)
-1. **Harden milestone-2 tests before starting the arena rewrite.** The rewrite is correct
-   and passes, but coverage is one happy path. Add, at minimum: a not-found lookup
-   (`XL_ENFND` + `-1`), a duplicate-key insert (`XL_EDUPL`, partial `successfull_writes`
-   count from `arena_lookup_try_update`), a regression test pinning the "empty slot at
-   index 0" case (the exact ambiguity the `UINT32_MAX - index` encoding was written to
-   fix), and a near-`UINT16_MAX` overflow-guard test in `increase_capacity_if_needed`.
-   Do this now — `account_store` builds directly on top of this table, and a latent bug
-   here becomes much harder to trace once it's wrapped behind a handle API.
-2. **SoA cleanup (ADR 0002):** remove `generation`, remove the `tags` byte
-   (`account-arena.h`/`.c` still have both), add the normality enum column; stretch —
-   move `descs` into a relocation-safe string pool.
-3. Tighten `account.h` (still open, 4th session running): drop `const` from
-   `xl_account_snapshot` fields (lines 29–31), make `xl_account_view.norm` a pointer
-   (line 37) to match every other view field.
-4. Then, and only then, start the `account_store` stub (milestone 3).
+Milestone-2 hardening is **done** (tests encode invariants; verified passing 2026-07-17).
+The account-arena rewrite is unblocked — but two lookup-table smells surfaced in review are
+now prerequisites, because `account_store` will inherit them. This week's homework
+(`homework/17-07-2026/`) *is* these decisions; answer before writing the struct.
+1. **Clear the `-Wconversion` backlog first** (28 warnings, 18 in `arena-lookup-table.c`).
+   It's the file the arena work adds index math to — don't grow the pile.
+2. **Fix the two lookup-table review findings** (HW Q2 + Q3): the `initialize`→`bool`
+   write-count coercion (`arena-lookup-table.c:62`) and the `hash_to_index` cleverness /
+   max-capacity decision (`:66-69`).
+3. **SoA cleanup (ADR 0002):** remove `generation`, remove the `tags` byte
+   (`account-arena.h`/`.c` still have both — confirmed via SoA test still printing Tags/
+   Generation offsets), add the normality enum column (HW Q4); stretch — move `descs` into
+   a relocation-safe string pool storing **indices, not pointers** (HW Q1).
+4. **Tighten `account.h`** (open 5th session): drop `const` from `xl_account_snapshot`
+   fields (lines 29–31), make `xl_account_view.norm` a pointer (line 37) to match every
+   other view field — the half you missed in HW Q4.
+5. Then, and only then, start the `account_store` stub (milestone 3).
 
 ## Recurring habits I'm grading you on
 - **Tests assert properties, not absence of crashes.** Every data-structure test should
@@ -56,6 +58,17 @@ _Last reviewed: 2026-07-01 (Sonnet)._
 - CMake toolchain files for mingw-w64 (milestone 7).
 
 ## Progress log
+- **2026-07-17** — Opus review + reset (first session in 11 days). Graded `20-06` homework:
+  Q1 A− (rehash landed, honored the "reuse stored hash" constraint; "binary tree" aside was a
+  category error), Q2 A (invariant stated *and* encoded across the resize boundary), Q3 B+
+  (missed that UB lets the compiler optimize on the assumption; calloc + `hash==0` sentinel
+  redesign is clean), Q4 B (reasoning right, fix never landed and only diagnosed the snapshot,
+  not `xl_account_view.norm`), Q5 C+ (varied string length instead of *branch predictability*;
+  no DCE-defeat/warmup/median; didn't check that `-O2` likely emits `cmov` anyway). Verified
+  both test binaries pass and confirmed the `-Wconversion` backlog is real (28 warnings, 18 in
+  `arena-lookup-table.c`). Review surfaced two lookup-table smells now gating milestone 3:
+  the `initialize`→`bool` write-count coercion, and the `hash_to_index` max-capacity cleverness.
+  Assigned `homework/17-07-2026/` (the ADR 0002 design calls + the two review fixes).
 - **2026-07-01** — Lookup-table rewrite finished and `TestInternalsLookupTable` passes.
   Two real bugs found and fixed en route: (1) `put()` stored `get()`'s signed "not found"
   return in a `uint16_t`, so the unsigned wraparound made every insert look like a
