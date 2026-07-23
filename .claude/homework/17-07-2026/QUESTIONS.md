@@ -19,6 +19,30 @@ number (~6.5 MB at cap `0x8000`) and why it makes the pool a pre-profile optimiz
 constraints forbid. End with the exact condition (a profile result) that would REOPEN the pool.
 
 ### Answer
+`desc` will stay as an inline column, not as a pool. This is an amendment to ADR 0002.
+
+A relocating pool breaks the lifetime guarantee of a view API, because after the pool relocates, any view holding
+a pointer into the old pool will be invalid. Reserving the entire description column memory up-front for a bump-allocating arena
+means that any view into the arena via a pointer remains valid for the lifetime of the program.
+
+Cache-locality is solved by an SoA arena because descriptions are held next to each-other in memory. 
+For example, a `balances[]` scan will iterate through balances that stored in contiguous blocks of memory.
+The scan will only ever load balances into the cache and touch those; it will not have to also load other
+struct fields.
+
+Using an `offset+len` scheme to index into a separate `desc` pool will actually make cache locality worse,
+since there now can be two cache misses - one when reading the `offset+len` data from the arena,
+and one when indexing into the `descs` pool. Now two cache lines may be filled, which also evicts other data
+from the cache. It is better to just have one cache miss and only use the cache lines required to load the `desc`
+small string.
+
+Pre-allocating all the space needed to store a full arena requires about 5.0MB: 
+```
+(0.7 load factor * 0x8000 lookup table capacity * 197 bytes/account) + (0x8000 capacity * 8 bytes/lookup entry) = ~5.0MB
+```
+
+If a profile shows that fetching descriptions becomes the bottleneck AND it greatly disrupts user experience,
+then we will reopen the description/name implementation and do some more optimizations.
 
 ## Q2 — Fixing the `initialize` return contract (connects to: review finding #1)
 `arena_lookup_table_initialize` returns a `uint16_t` write-count coerced to `bool`
